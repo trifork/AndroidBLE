@@ -1,0 +1,3 @@
+include ':bluetoothle'
+include ':app'
+rootProject.name = "AndroidBLE"
