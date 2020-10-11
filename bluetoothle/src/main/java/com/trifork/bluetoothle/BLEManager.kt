@@ -11,7 +11,11 @@ import android.os.Looper
 import android.os.ParcelUuid
 import java.util.*
 
-class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManagerCallbacks? = null, val mLogger: Logger? = null) : BLEGattManagerCallbacks {
+class BLEManager @JvmOverloads constructor(
+    context: Context,
+    listener: BLEManagerCallbacks? = null,
+    val mLogger: Logger? = null
+) : BLEGattManagerCallbacks {
     private val TAG = "BLEManager"
     private var bleManagerScanCallbacks: BLEManagerScanCallbacks? = null
     private val mListeners: MutableList<BLEManagerCallbacks> = ArrayList()
@@ -22,7 +26,11 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
     private val mScanCallback: ScanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             if (scanning) {
-                LogHelper.d(mLogger, TAG, "onScanResult() called with: callbackType = [" + callbackType + "], result = [" + result.device.address + "]")
+                LogHelper.d(
+                    mLogger,
+                    TAG,
+                    "onScanResult() called with: callbackType = [" + callbackType + "], result = [" + result.device.address + "]"
+                )
                 mainThread.post {
                     if (bleManagerScanCallbacks != null) {
                         bleManagerScanCallbacks!!.onScanResult(result)
@@ -48,7 +56,11 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
             }
             when (errorCode) {
                 1 -> LogHelper.e(mLogger, TAG, "Scan failed: SCAN_FAILED_ALREADY_STARTED")
-                2 -> LogHelper.e(mLogger, TAG, "Scan failed: SCAN_FAILED_APPLICATION_REGISTRATION_FAILED")
+                2 -> LogHelper.e(
+                    mLogger,
+                    TAG,
+                    "Scan failed: SCAN_FAILED_APPLICATION_REGISTRATION_FAILED"
+                )
                 3 -> LogHelper.e(mLogger, TAG, "Scan failed: SCAN_FAILED_INTERNAL_ERROR")
                 4 -> LogHelper.e(mLogger, TAG, "Scan failed: SCAN_FAILED_FEATURE_UNSUPPORTED")
                 5 -> LogHelper.e(mLogger, TAG, "Scan failed: SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES")
@@ -84,13 +96,21 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
         if (mBluetoothAdapter != null) {
             for (device in mBluetoothAdapter.bondedDevices) {
                 if (device.address == macAddress) {
-                    LogHelper.d(mLogger, TAG, "getBondedDevice() found device with with: macAddress = [$macAddress]")
+                    LogHelper.d(
+                        mLogger,
+                        TAG,
+                        "getBondedDevice() found device with with: macAddress = [$macAddress]"
+                    )
                     return device
                 }
             }
         }
         LogHelper.w(mLogger, TAG, "getBondedDevice: mBluetoothAdapter == null")
         return null
+    }
+
+    fun startScan() {
+        startScan(emptyList())
     }
 
     fun startScan(filters: List<ScanFilter>) {
@@ -103,8 +123,15 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
             if (mBluetoothAdapter.bluetoothLeScanner != null) {
                 scanning = true
                 LogHelper.d(mLogger, TAG, "startScan() called with: filters = [$filters]")
-                val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
-                mainThread.post { mBluetoothAdapter.bluetoothLeScanner.startScan(filters, settings, mScanCallback) }
+                val settings =
+                    ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
+                mainThread.post {
+                    mBluetoothAdapter.bluetoothLeScanner.startScan(
+                        filters,
+                        settings,
+                        mScanCallback
+                    )
+                }
             } else {
                 LogHelper.w(mLogger, TAG, "startScan: BluetoothLeScanner == null")
             }
@@ -116,7 +143,10 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
     @JvmOverloads
     fun startScan(serviceUuid: UUID, macAddress: String? = null) {
         val filters: MutableList<ScanFilter> = ArrayList()
-        filters.add(ScanFilter.Builder().setServiceUuid(ParcelUuid.fromString(serviceUuid.toString())).build())
+        filters.add(
+            ScanFilter.Builder().setServiceUuid(ParcelUuid.fromString(serviceUuid.toString()))
+                .build()
+        )
         if (macAddress != null) {
             filters.add(ScanFilter.Builder().setDeviceAddress(macAddress).build())
         }
@@ -134,14 +164,21 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
 
     fun writeCharacteristic(characteristic: BluetoothGattCharacteristic, data: ByteArray) {
         if (mBLEGattManager != null) {
-            LogHelper.d(mLogger, TAG, "writeCharacteristic() called with: characteristic = [$characteristic], data = [$data]")
+            LogHelper.d(
+                mLogger,
+                TAG,
+                "writeCharacteristic() called with: characteristic = [$characteristic], data = [$data]"
+            )
             mBLEGattManager.writeCharacteristic(characteristic, data)
         } else {
             LogHelper.w(mLogger, TAG, "writeCharacteristic: mBLEGattManager == null")
         }
     }
 
-    fun setCharacteristicNotification(characteristic: BluetoothGattCharacteristic?, enabled: Boolean) {
+    fun setCharacteristicNotification(
+        characteristic: BluetoothGattCharacteristic?,
+        enabled: Boolean
+    ) {
         if (mBLEGattManager != null) {
             mBLEGattManager.setCharacteristicNotification(characteristic, enabled)
         } else {
@@ -165,7 +202,11 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
 
     fun connect(bluetoothDevice: BluetoothDevice) {
         mBluetoothAdapter?.cancelDiscovery()
-        LogHelper.d(mLogger, TAG, "connect() called with: bluetoothDevice = [" + bluetoothDevice.address + "]")
+        LogHelper.d(
+            mLogger,
+            TAG,
+            "connect() called with: bluetoothDevice = [" + bluetoothDevice.address + "]"
+        )
         mainThread.postDelayed({ mBLEGattManager!!.connect(bluetoothDevice) }, 500)
     }
 
@@ -206,13 +247,17 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
                 val m = device.javaClass.getMethod("removeBond", *(null as Array<Class<*>?>))
                 m.invoke(device, *null as Array<Any?>)
             } catch (e: Exception) {
-                LogHelper.e(mLogger, TAG, e.message)
+                LogHelper.e(mLogger, TAG, e.message ?: e.toString())
             }
         }
     }
 
     fun readCharacteristic(characteristic: BluetoothGattCharacteristic) {
-        LogHelper.d(mLogger, TAG, "readCharacteristic() called with: characteristic = [" + characteristic.uuid + "]")
+        LogHelper.d(
+            mLogger,
+            TAG,
+            "readCharacteristic() called with: characteristic = [" + characteristic.uuid + "]"
+        )
         if (mBLEGattManager != null) {
             mBLEGattManager.readCharacteristic(characteristic)
         } else {
@@ -222,7 +267,11 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
 
     @Synchronized
     override fun onDisconnected(device: BluetoothDevice, status: Int) {
-        LogHelper.d(mLogger, TAG, "onDisconnected() called with: device = [" + device.address + "], status = [" + status + "]")
+        LogHelper.d(
+            mLogger,
+            TAG,
+            "onDisconnected() called with: device = [" + device.address + "], status = [" + status + "]"
+        )
         mainThread.post {
             val it: Iterator<BLEManagerCallbacks> = mListeners.iterator()
             while (it.hasNext()) {
@@ -246,7 +295,11 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
 
     @Synchronized
     override fun onServicesDiscovered(services: List<BluetoothGattService?>) {
-        LogHelper.d(mLogger, TAG, "onServicesDiscovered() called with: services = [" + services.size + "]")
+        LogHelper.d(
+            mLogger,
+            TAG,
+            "onServicesDiscovered() called with: services = [" + services.size + "]"
+        )
         mainThread.post {
             val it: Iterator<BLEManagerCallbacks> = mListeners.iterator()
             while (it.hasNext()) {
@@ -269,8 +322,15 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
     }
 
     @Synchronized
-    override fun onCharacteristicChanged(characteristic: BluetoothGattCharacteristic, data: ByteArray) {
-        LogHelper.d(mLogger, TAG, "onCharacteristicChanged() called with: characteristic = [" + characteristic.uuid + "], data = [" + data + "]")
+    override fun onCharacteristicChanged(
+        characteristic: BluetoothGattCharacteristic,
+        data: ByteArray
+    ) {
+        LogHelper.d(
+            mLogger,
+            TAG,
+            "onCharacteristicChanged() called with: characteristic = [" + characteristic.uuid + "], data = [" + data + "]"
+        )
         mainThread.post {
             val it: Iterator<BLEManagerCallbacks> = mListeners.iterator()
             while (it.hasNext()) {
@@ -282,7 +342,11 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
 
     @Synchronized
     override fun onCharacteristicWrite(characteristic: BluetoothGattCharacteristic, status: Int) {
-        LogHelper.d(mLogger, TAG, "onCharacteristicWrite() called with: characteristic = [" + characteristic.uuid + "], status = [" + status + "]")
+        LogHelper.d(
+            mLogger,
+            TAG,
+            "onCharacteristicWrite() called with: characteristic = [" + characteristic.uuid + "], status = [" + status + "]"
+        )
         mainThread.post {
             val it: Iterator<BLEManagerCallbacks> = mListeners.iterator()
             while (it.hasNext()) {
@@ -304,8 +368,15 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
     }
 
     @Synchronized
-    override fun onCharacteristicRead(characteristic: BluetoothGattCharacteristic, data: ByteArray) {
-        LogHelper.d(mLogger, TAG, "onCharacteristicRead() called with: characteristic = [" + characteristic.uuid + "], data = [" + data + "]")
+    override fun onCharacteristicRead(
+        characteristic: BluetoothGattCharacteristic,
+        data: ByteArray
+    ) {
+        LogHelper.d(
+            mLogger,
+            TAG,
+            "onCharacteristicRead() called with: characteristic = [" + characteristic.uuid + "], data = [" + data + "]"
+        )
         mainThread.post {
             val it: Iterator<BLEManagerCallbacks> = mListeners.iterator()
             while (it.hasNext()) {
@@ -317,7 +388,11 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
 
     @Synchronized
     override fun onDescriptorWrite(descriptor: BluetoothGattDescriptor, status: Int) {
-        LogHelper.d(mLogger, TAG, "onDescriptorWrite() called with: bluetoothGattDescriptor = [" + descriptor.uuid + "], status = [" + status + "]")
+        LogHelper.d(
+            mLogger,
+            TAG,
+            "onDescriptorWrite() called with: bluetoothGattDescriptor = [" + descriptor.uuid + "], status = [" + status + "]"
+        )
         mainThread.post {
             val it: Iterator<BLEManagerCallbacks> = mListeners.iterator()
             while (it.hasNext()) {
@@ -329,7 +404,11 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
 
     @Synchronized
     override fun onBondStateChanged(state: Int, device: BluetoothDevice) {
-        LogHelper.d(mLogger, TAG, "onBondStateChanged() called with: state = [" + state + "], device = [" + device.address + "]")
+        LogHelper.d(
+            mLogger,
+            TAG,
+            "onBondStateChanged() called with: state = [" + state + "], device = [" + device.address + "]"
+        )
         mainThread.post {
             val it: Iterator<BLEManagerCallbacks> = mListeners.iterator()
             while (it.hasNext()) {
@@ -365,7 +444,8 @@ class BLEManager @JvmOverloads constructor(context: Context, listener: BLEManage
         if (listener != null) {
             mainThread.post { mListeners.add(listener) }
         }
-        val bluetoothManager = (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager)
+        val bluetoothManager =
+            (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager)
         mBluetoothAdapter = bluetoothManager.adapter
         mBLEGattManager = BLEGattManager(this, context, mLogger)
     }
