@@ -11,11 +11,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - run: |
-          git tag -l | xargs git tag -d && git fetch --tags
-          bluetoothleVersionName=$(grep "versionName" bluetoothle/build.gradle | awk '{print $2}' | tr -d \''"\')
-          latest_tag=$(git describe --match "$bluetoothleVersionName.[0-9]*" --tags --abbrev=0 HEAD --first-parent)
-          if [ -z "${latest_tag##*$bluetoothleVersionName*}" ]; then new_version=$bluetoothleVersionName.0; else new_version=$bluetoothleVersionName.$((${latest_tag##*.} + 1)); fi
+      - run: git tag -l | xargs git tag -d && git fetch --tags
+      - run: bluetoothleVersionName=$(grep "versionName" bluetoothle/build.gradle | awk '{print $2}' | tr -d \''"\')
+      - run: latest_tag=$(git describe --match "$bluetoothleVersionName.[0-9]*" --tags --abbrev=0 HEAD --first-parent)
+      - run: if [ -z "${latest_tag##*$bluetoothleVersionName*}" ]; then new_version=$bluetoothleVersionName.0; else new_version=$bluetoothleVersionName.$((${latest_tag##*.} + 1)); fi
       - name: Bump version and push tag
         uses: mathieudutour/github-tag-action@v4.5
         with:
