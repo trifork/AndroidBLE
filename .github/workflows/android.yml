@@ -12,6 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Get new version
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
         env:
           bluetoothleVersionName: $(./gradlew -q printVersionName)
         run: |
