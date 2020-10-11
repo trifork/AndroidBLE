@@ -20,4 +20,4 @@ jobs:
         uses: mathieudutour/github-tag-action@v4.5
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          custom_tag: ${{ new_version }}
+          custom_tag: ${{ env.new_version }}
