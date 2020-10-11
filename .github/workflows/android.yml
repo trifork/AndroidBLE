@@ -12,14 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Get new version
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
         env:
           bluetoothleVersionName: $(./gradlew -q printVersionName)
         run: |
           git tag -l | xargs git tag -d && git fetch --tags
           echo "VersionName= ${{ env.bluetoothleVersionName }}"
-          latest_tag=$(git describe --match "$bluetoothleVersionName.[0-9]*" --tags --abbrev=0 HEAD --first-parent)
+          latest_tag=$(git describe --match "${{ env.bluetoothleVersionName }}.[0-9]*" --tags --abbrev=0 HEAD --first-parent)
           if [ -z "${latest_tag##*$bluetoothleVersionName*}" ]; then new_version=$bluetoothleVersionName.0; else new_version=$bluetoothleVersionName.$((${latest_tag##*.} + 1)); fi
       - name: Bump version and push tag
         uses: mathieudutour/github-tag-action@v4.5
