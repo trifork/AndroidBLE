@@ -15,6 +15,7 @@ jobs:
         env:
           bluetoothleVersionName: $(./gradlew -q printVersionName)
         run: |
+          git fetch --prune --unshallow
           git describe --tags
           git tag -l | xargs git tag -d && git fetch --tags
           echo "VersionName= ${{ env.bluetoothleVersionName }}"
