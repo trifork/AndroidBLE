@@ -17,7 +17,7 @@ jobs:
         run: echo "BLUETOOTH_LE_VERSION_NAME=$(./gradlew -q printVersionName)" >> $GITHUB_ENV
       - name: Get latest tag from prefix
         run: echo "LATEST_TAG=latest_tag=$(git describe --match "${{ env.BLUETOOTH_LE_VERSION_NAME }}.[0-9]*" --tags --abbrev=0 HEAD --first-parent)" >> $GITHUB_ENV
-      - name: Print latest tag
+      - name: Calculate next version
         run: |
           if [ -z "${latest_tag##*$BLUETOOTH_LE_VERSION_NAME*}" ]
           then
@@ -26,6 +26,8 @@ jobs:
             echo "BLUETOOTH_LE_NEW_VERSION=${{ env.BLUETOOTH_LE_VERSION_NAME }}.$((${latest_tag##*.} + 1))" >> $GITHUB_ENV
           fi
           echo ${{ env.BLUETOOTH_LE_NEW_VERSION }}
+      - name: Get library version name
+        run: echo "BLUETOOTH_LE_VERSION_NAME=$(./gradlew -q printVersionName)" >> $GITHUB_ENV
 
 
 
