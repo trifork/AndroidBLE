@@ -20,6 +20,8 @@ jobs:
           echo "Test4"
           echo "BLUETOOTH_LE_VERSION_NAME=$(./gradlew -q printVersionName)" >> $GITHUB_ENV
           echo "VersionName= ${{ env.BLUETOOTH_LE_VERSION_NAME }}"
+          echo "TESTING=hestenHenning" >> $GITHUB_ENV
+          echo ${{ env.TESTING }}
 #          echo "Test5"
 #          latest_tag=$(git describe --match "${{ env.BLUETOOTH_LE_VERSION_NAME }}.[0-9]*" --tags --abbrev=0 HEAD --first-parent)
 #          echo "Test6"
