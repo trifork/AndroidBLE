@@ -26,7 +26,9 @@ jobs:
           echo "Test5"
           latest_tag=$(git describe --match "${{ env.bluetoothleVersionName }}.[0-9]*" --tags --abbrev=0 HEAD --first-parent)
           echo "Test6"
-          if [ -z "${latest_tag##*$bluetoothleVersionName*}" ]; then new_version=$bluetoothleVersionName.0; else new_version=$bluetoothleVersionName.$((${latest_tag##*.} + 1)); fi
+          if [ -z "${latest_tag##*$bluetoothleVersionName*}" ]; then export new_version=$bluetoothleVersionName.0; else export new_version=$bluetoothleVersionName.$((${latest_tag##*.} + 1)); fi
+          echo $new_version
+          echo ${{ env.new_version }}
       - name: Bump version and push tag
         uses: mathieudutour/github-tag-action@v4.5
         with:
