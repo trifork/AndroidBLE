@@ -9,19 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Get new version
-        run: |
-          echo "Test1"
-          git fetch --prune --unshallow --tags
-          echo "Test2"
-          git describe --tags
-          echo "Test3"
-          git tag -l | xargs git tag -d && git fetch --tags
-          echo "Test4"
-          echo "BLUETOOTH_LE_VERSION_NAME=$(./gradlew -q printVersionName)" >> $GITHUB_ENV
-          echo "VersionName= $BLUETOOTH_LE_VERSION_NAME"
-          echo "TESTING=hestenHenning" >> $GITHUB_ENV
-          echo $TESTING
+      - name: Fetch
+        run: git fetch --prune --unshallow --tags
+      - name: Clean tags
+        run: git tag -l | xargs git tag -d && git fetch --tags
+      - name: Get library version name
+        run: echo "BLUETOOTH_LE_VERSION_NAME=$(./gradlew -q printVersionName)" >> $GITHUB_ENV
+      - name: Print version name
+        run: echo ${{ env.BLUETOOTH_LE_VERSION_NAME}}
 #          echo "Test5"
 #          latest_tag=$(git describe --match "${{ env.BLUETOOTH_LE_VERSION_NAME }}.[0-9]*" --tags --abbrev=0 HEAD --first-parent)
 #          echo "Test6"
