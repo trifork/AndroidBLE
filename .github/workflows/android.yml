@@ -15,8 +15,10 @@ jobs:
         run: git tag -l | xargs git tag -d && git fetch --tags
       - name: Get library version name
         run: echo "BLUETOOTH_LE_VERSION_NAME=$(./gradlew -q printVersionName)" >> $GITHUB_ENV
-      - name: Print version name
-        run: echo ${{ env.BLUETOOTH_LE_VERSION_NAME}}
+      - name: Get latest tag from prefix
+        run: echo "LATEST_TAG=latest_tag=$(git describe --match "${{ env.BLUETOOTH_LE_VERSION_NAME }}.[0-9]*" --tags --abbrev=0 HEAD --first-parent)" >> $GITHUB_ENV
+      - name: Print latest tag
+        run: echo ${{ env.LATEST_TAG }}
 #          echo "Test5"
 #          latest_tag=$(git describe --match "${{ env.BLUETOOTH_LE_VERSION_NAME }}.[0-9]*" --tags --abbrev=0 HEAD --first-parent)
 #          echo "Test6"
