@@ -16,7 +16,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 29
         versionCode gitCommitCount().toInteger()
-        versionName "0.0"
+        versionName "1.0"
 
         consumerProguardFiles "consumer-rules.pro"
     }
