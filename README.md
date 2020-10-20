@@ -19,7 +19,7 @@ dependencies {
 }
 ```
 
-Thats it. You should now have `BLEManager` availble by `import com.trifork.bluetoothle.BLEManager;`
+That´s it. You should now have `BLEManager` available by `import com.trifork.bluetoothle.BLEManager;`
 
 ## How to deploy new version
 
