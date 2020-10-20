@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity() {
             TODO("Not yet implemented")
         }
 
-        override fun onServicesDiscovered(services: List<BluetoothGattService?>) {
+        override fun onServicesDiscovered(services: List<BluetoothGattService>) {
             TODO("Not yet implemented")
         }
 

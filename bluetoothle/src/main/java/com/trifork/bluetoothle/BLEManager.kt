@@ -11,7 +11,7 @@ import android.os.Looper
 import android.os.ParcelUuid
 import java.util.*
 
-class BLEManager @JvmOverloads constructor(
+class BLEManager constructor(
     context: Context,
     listener: BLEManagerCallbacks? = null,
     val mLogger: Logger? = null
@@ -140,7 +140,6 @@ class BLEManager @JvmOverloads constructor(
         }
     }
 
-    @JvmOverloads
     fun startScan(serviceUuid: UUID, macAddress: String? = null) {
         val filters: MutableList<ScanFilter> = ArrayList()
         filters.add(
@@ -244,8 +243,7 @@ class BLEManager @JvmOverloads constructor(
     private fun unpairDevice(device: BluetoothDevice) {
         mainThread.post {
             try {
-                val m = device.javaClass.getMethod("removeBond", *(null as Array<Class<*>?>))
-                m.invoke(device, *null as Array<Any?>)
+                device.javaClass.getMethod("removeBond").invoke(device)
             } catch (e: Exception) {
                 LogHelper.e(mLogger, TAG, e.message ?: e.toString())
             }
@@ -294,7 +292,7 @@ class BLEManager @JvmOverloads constructor(
     }
 
     @Synchronized
-    override fun onServicesDiscovered(services: List<BluetoothGattService?>) {
+    override fun onServicesDiscovered(services: List<BluetoothGattService>) {
         LogHelper.d(
             mLogger,
             TAG,

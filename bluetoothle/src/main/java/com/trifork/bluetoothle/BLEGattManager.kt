@@ -9,7 +9,25 @@ import android.os.Handler
 import android.os.Looper
 import java.util.*
 
-internal class BLEGattManager(private val mListener: BLEGattManagerCallbacks, private val mContext: Context, private val mLogger: Logger?) {
+internal class BLEGattManager(
+    private val mListener: BLEGattManagerCallbacks,
+    private val mContext: Context,
+    private val mLogger: Logger?
+) {
+    companion object {
+        private val TAG = BLEGattManager::class.java.simpleName
+        private val CCCD_ID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+        private const val ACTION_CONNECT = "ACTION_CONNECT"
+        private const val ACTION_DISCOVER_SERVICES = "ACTION_DISCOVER_SERVICES"
+        private const val ACTION_CREATE_BOND = "ACTION_CREATE_BOND"
+        private const val ACTION_CHANGE_MTU = "ACTION_CHANGE_MTU"
+        private const val ACTION_WRITE_CHARACTERISTIC = "ACTION_WRITE_CHARACTERISTIC"
+        private const val ACTION_READ_CHARACTERISTIC = "ACTION_READ_CHARACTERISTIC"
+        private const val ACTION_SET_CHARACTERISTIC_NOTIFICATION =
+            "ACTION_SET_CHARACTERISTIC_NOTIFICATION"
+        private const val ACTION_READ_REMOTE_RSSI = "ACTION_READ_REMOTE_RSSI"
+    }
+
     private var mBluetoothGatt: BluetoothGatt? = null
     private var mDevice: BluetoothDevice? = null
     private val bleHandler = Handler(Looper.getMainLooper())
@@ -17,12 +35,14 @@ internal class BLEGattManager(private val mListener: BLEGattManagerCallbacks, pr
     private val actionNames = HashMap<Runnable, String>()
     private var actionStartedAt: Date? = null
     private var retries = 0
+
     private val mBluetoothBroadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+            val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)!!
             val action = intent.action
             if (BluetoothDevice.ACTION_BOND_STATE_CHANGED == action) {
-                val state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR)
+                val state =
+                    intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR)
                 LogHelper.d(mLogger, TAG, "onReceive: Bond state: $state")
                 mListener.onBondStateChanged(state, device)
             } else {
@@ -37,24 +57,36 @@ internal class BLEGattManager(private val mListener: BLEGattManagerCallbacks, pr
         actionQueue.add(action)
         actionNames[action] = actionName
         LogHelper.d(mLogger, TAG, "New action queue size: " + actionQueue.size)
-        if (actionStartedAt == null) {
-            actionStartedAt = Date()
-            LogHelper.d(mLogger, TAG, "Execute first action: " + actionNames[action])
-            action.run()
-            //bleHandler.post(action);
-        } else if (actionStartedAt!!.time + 60000 < Date().time) {
-            try {
-                LogHelper.d(mLogger, TAG, "Action blocks(" + actionNames[actionQueue.first] + ") executing next action after 60 seconds wait time")
-            } catch (nsee: NoSuchElementException) {
-                LogHelper.e(mLogger, TAG, "No such element: " + nsee.message)
+        when {
+            actionStartedAt == null -> {
+                actionStartedAt = Date()
+                LogHelper.d(mLogger, TAG, "Execute first action: " + actionNames[action])
+                action.run()
+                //bleHandler.post(action);
             }
-            clearActionQueue()
-            executeNext()
-        } else {
-            try {
-                LogHelper.d(mLogger, TAG, "Already executing task: " + actionNames[actionQueue.first])
-            } catch (nsee: NoSuchElementException) {
-                LogHelper.e(mLogger, TAG, "No such element: " + nsee.message)
+            actionStartedAt!!.time + 60000 < Date().time -> {
+                try {
+                    LogHelper.d(
+                        mLogger,
+                        TAG,
+                        "Action blocks(" + actionNames[actionQueue.first] + ") executing next action after 60 seconds wait time"
+                    )
+                } catch (e: NoSuchElementException) {
+                    LogHelper.e(mLogger, TAG, "No such element: " + e.message)
+                }
+                clearActionQueue()
+                executeNext()
+            }
+            else -> {
+                try {
+                    LogHelper.d(
+                        mLogger,
+                        TAG,
+                        "Already executing task: " + actionNames[actionQueue.first]
+                    )
+                } catch (e: NoSuchElementException) {
+                    LogHelper.e(mLogger, TAG, "No such element: " + e.message)
+                }
             }
         }
     }
@@ -91,7 +123,11 @@ internal class BLEGattManager(private val mListener: BLEGattManagerCallbacks, pr
         actionStartedAt = null
         addAction({
             mDevice = device
-            LogHelper.d(mLogger, TAG, "Connecting to device: " + device.address + " bond state: " + device.bondState)
+            LogHelper.d(
+                mLogger,
+                TAG,
+                "Connecting to device: " + device.address + " bond state: " + device.bondState
+            )
             mBluetoothGatt = mDevice!!.connectGatt(mContext, false, mBluetoothGattCallback)
         }, ACTION_CONNECT)
     }
@@ -140,7 +176,13 @@ internal class BLEGattManager(private val mListener: BLEGattManagerCallbacks, pr
             if (gatt != mBluetoothGatt) {
                 return
             }
-            LogHelper.w(mLogger, TAG, "onConnectionStateChange status: " + status + " newState: " + getStateString(newState))
+            LogHelper.w(
+                mLogger,
+                TAG,
+                "onConnectionStateChange status: $status newState: " + getStateString(
+                    newState
+                )
+            )
             if (gatt != mBluetoothGatt) {
                 executeNext()
                 LogHelper.e(mLogger, TAG, "Incorrect GATT! status: $status newState: $newState")
@@ -195,7 +237,11 @@ internal class BLEGattManager(private val mListener: BLEGattManagerCallbacks, pr
             executeNext()
         }
 
-        override fun onCharacteristicRead(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            status: Int
+        ) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 LogHelper.d(mLogger, TAG, "onCharacteristicRead: " + characteristic.uuid.toString())
                 mListener.onCharacteristicRead(characteristic, characteristic.value)
@@ -206,13 +252,20 @@ internal class BLEGattManager(private val mListener: BLEGattManagerCallbacks, pr
             executeNext()
         }
 
-        override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic
+        ) {
             LogHelper.d(mLogger, TAG, "onCharacteristicChanged")
             mListener.onCharacteristicChanged(characteristic, characteristic.value)
             executeNext()
         }
 
-        override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+        override fun onCharacteristicWrite(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            status: Int
+        ) {
             super.onCharacteristicWrite(gatt, characteristic, status)
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 LogHelper.d(mLogger, TAG, "onCharacteristicWrite")
@@ -224,7 +277,11 @@ internal class BLEGattManager(private val mListener: BLEGattManagerCallbacks, pr
             executeNext()
         }
 
-        override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
+        override fun onDescriptorWrite(
+            gatt: BluetoothGatt,
+            descriptor: BluetoothGattDescriptor,
+            status: Int
+        ) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 LogHelper.d(mLogger, TAG, "onDescriptorWrite")
                 mListener.onDescriptorWrite(descriptor, status)
@@ -265,7 +322,11 @@ internal class BLEGattManager(private val mListener: BLEGattManagerCallbacks, pr
         if (characteristic != null) {
             val service = characteristic.service
             addAction({
-                LogHelper.d(mLogger, TAG, "writeCharacteristic() called with: service = [" + service.uuid + "], characteristicUuid = [" + characteristic.uuid + "]")
+                LogHelper.d(
+                    mLogger,
+                    TAG,
+                    "writeCharacteristic() called with: service = [" + service.uuid + "], characteristicUuid = [" + characteristic.uuid + "]"
+                )
                 if (mBluetoothGatt != null) {
                     characteristic.value = data
                     mBluetoothGatt!!.writeCharacteristic(characteristic)
@@ -285,41 +346,73 @@ internal class BLEGattManager(private val mListener: BLEGattManagerCallbacks, pr
             if (service != null) {
                 addAction({
                     if (mBluetoothGatt != null) {
-                        LogHelper.d(mLogger, TAG, "readCharacteristic(" + characteristic.uuid + ", " + service.uuid + ")")
+                        LogHelper.d(
+                            mLogger,
+                            TAG,
+                            "readCharacteristic(" + characteristic.uuid + ", " + service.uuid + ")"
+                        )
                         try {
                             mBluetoothGatt!!.readCharacteristic(characteristic)
                         } catch (npe: NullPointerException) {
-                            LogHelper.e(mLogger, TAG, "readCharacteristic(" + characteristic.uuid + ", " + service.uuid + ") throws NullPointerException")
+                            LogHelper.e(
+                                mLogger,
+                                TAG,
+                                "readCharacteristic(" + characteristic.uuid + ", " + service.uuid + ") throws NullPointerException"
+                            )
                         }
                     } else {
-                        LogHelper.w(mLogger, TAG, "readCharacteristic(" + characteristic.uuid + ") failed, mBluetoothGatt is null")
+                        LogHelper.w(
+                            mLogger,
+                            TAG,
+                            "readCharacteristic(" + characteristic.uuid + ") failed, mBluetoothGatt is null"
+                        )
                     }
                 }, ACTION_READ_CHARACTERISTIC)
             } else {
-                LogHelper.w(mLogger, TAG, "readCharacteristic(" + characteristic.uuid + ") failed, service is null")
+                LogHelper.w(
+                    mLogger,
+                    TAG,
+                    "readCharacteristic(" + characteristic.uuid + ") failed, service is null"
+                )
             }
         } else {
             LogHelper.e(mLogger, TAG, "readCharacteristic() failed, characteristic is null")
         }
     }
 
-    fun setCharacteristicNotification(characteristic: BluetoothGattCharacteristic?, enabled: Boolean) {
+    fun setCharacteristicNotification(
+        characteristic: BluetoothGattCharacteristic?,
+        enabled: Boolean
+    ) {
         if (characteristic != null) {
             val service = characteristic.service
             addAction({
-                LogHelper.d(mLogger, TAG, "setCharacteristicNotification(" + characteristic.uuid + ", " + service.uuid.toString() + ")")
+                LogHelper.d(
+                    mLogger,
+                    TAG,
+                    "setCharacteristicNotification(" + characteristic.uuid + ", " + service.uuid.toString() + ")"
+                )
                 if (mBluetoothGatt != null) {
                     mBluetoothGatt!!.setCharacteristicNotification(characteristic, enabled)
                     val descriptor = characteristic.getDescriptor(CCCD_ID)
-                    descriptor.value = if (enabled) BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE else BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+                    descriptor.value =
+                        if (enabled) BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE else BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
                     mBluetoothGatt!!.writeDescriptor(descriptor)
                     Handler().postDelayed({ executeNext() }, 500)
                 } else {
-                    LogHelper.w(mLogger, TAG, "setCharacteristicNotification: mBluetoothGatt == null")
+                    LogHelper.w(
+                        mLogger,
+                        TAG,
+                        "setCharacteristicNotification: mBluetoothGatt == null"
+                    )
                 }
             }, ACTION_SET_CHARACTERISTIC_NOTIFICATION)
         } else {
-            LogHelper.e(mLogger, TAG, "setCharacteristicNotification() failed, characteristic is null")
+            LogHelper.e(
+                mLogger,
+                TAG,
+                "setCharacteristicNotification() failed, characteristic is null"
+            )
         }
     }
 
@@ -366,18 +459,5 @@ internal class BLEGattManager(private val mListener: BLEGattManagerCallbacks, pr
                 }
             }, ACTION_READ_REMOTE_RSSI)
         }
-    }
-
-    companion object {
-        private val TAG = BLEGattManager::class.java.simpleName
-        private val CCCD_ID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
-        private const val ACTION_CONNECT = "ACTION_CONNECT"
-        private const val ACTION_DISCOVER_SERVICES = "ACTION_DISCOVER_SERVICES"
-        private const val ACTION_CREATE_BOND = "ACTION_CREATE_BOND"
-        private const val ACTION_CHANGE_MTU = "ACTION_CHANGE_MTU"
-        private const val ACTION_WRITE_CHARACTERISTIC = "ACTION_WRITE_CHARACTERISTIC"
-        private const val ACTION_READ_CHARACTERISTIC = "ACTION_READ_CHARACTERISTIC"
-        private const val ACTION_SET_CHARACTERISTIC_NOTIFICATION = "ACTION_SET_CHARACTERISTIC_NOTIFICATION"
-        private const val ACTION_READ_REMOTE_RSSI = "ACTION_READ_REMOTE_RSSI"
     }
 }

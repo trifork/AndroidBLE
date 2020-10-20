@@ -8,7 +8,7 @@ import android.bluetooth.BluetoothGattService
 interface BLEGattManagerCallbacks {
     fun onDisconnected(device: BluetoothDevice, status: Int)
     fun onConnected(device: BluetoothDevice)
-    fun onServicesDiscovered(services: List<BluetoothGattService?>)
+    fun onServicesDiscovered(services: List<BluetoothGattService>)
     fun onCharacteristicRead(characteristic: BluetoothGattCharacteristic, data: ByteArray)
     fun onDescriptorWrite(descriptor: BluetoothGattDescriptor, status: Int)
     fun onBondStateChanged(state: Int, device: BluetoothDevice)
