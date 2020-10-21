@@ -19,7 +19,7 @@ class BLEManager constructor(
     private val TAG = "BLEManager"
     private var bleManagerScanCallbacks: BLEManagerScanCallbacks? = null
     private val mListeners: MutableList<BLEManagerCallbacks> = ArrayList()
-    private val mBluetoothAdapter: BluetoothAdapter?
+    private var mBluetoothAdapter: BluetoothAdapter
     private val mBLEGattManager: BLEGattManager?
     private val mainThread = Handler(Looper.getMainLooper())
     private var scanning = false
@@ -93,16 +93,14 @@ class BLEManager constructor(
 
     fun getBondedDevice(macAddress: String): BluetoothDevice? {
         LogHelper.d(mLogger, TAG, "getBondedDevice() called with: macAddress = [$macAddress]")
-        if (mBluetoothAdapter != null) {
-            for (device in mBluetoothAdapter.bondedDevices) {
-                if (device.address == macAddress) {
-                    LogHelper.d(
-                        mLogger,
-                        TAG,
-                        "getBondedDevice() found device with with: macAddress = [$macAddress]"
-                    )
-                    return device
-                }
+        for (device in mBluetoothAdapter.bondedDevices) {
+            if (device.address == macAddress) {
+                LogHelper.d(
+                    mLogger,
+                    TAG,
+                    "getBondedDevice() found device with with: macAddress = [$macAddress]"
+                )
+                return device
             }
         }
         LogHelper.w(mLogger, TAG, "getBondedDevice: mBluetoothAdapter == null")
@@ -118,25 +116,21 @@ class BLEManager constructor(
             LogHelper.w(mLogger, TAG, "startScan: cancel, already scanning")
             return
         }
-        if (mBluetoothAdapter != null) {
-            mBluetoothAdapter.startDiscovery()
-            if (mBluetoothAdapter.bluetoothLeScanner != null) {
-                scanning = true
-                LogHelper.d(mLogger, TAG, "startScan() called with: filters = [$filters]")
-                val settings =
-                    ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
-                mainThread.post {
-                    mBluetoothAdapter.bluetoothLeScanner.startScan(
-                        filters,
-                        settings,
-                        mScanCallback
-                    )
-                }
-            } else {
-                LogHelper.w(mLogger, TAG, "startScan: BluetoothLeScanner == null")
+        mBluetoothAdapter.startDiscovery()
+        if (mBluetoothAdapter.bluetoothLeScanner != null) {
+            scanning = true
+            LogHelper.d(mLogger, TAG, "startScan() called with: filters = [$filters]")
+            val settings =
+                ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
+            mainThread.post {
+                mBluetoothAdapter.bluetoothLeScanner.startScan(
+                    filters,
+                    settings,
+                    mScanCallback
+                )
             }
         } else {
-            LogHelper.w(mLogger, TAG, "startScan: mBluetoothAdapter == null")
+            LogHelper.w(mLogger, TAG, "startScan: BluetoothLeScanner == null")
         }
     }
 
@@ -436,6 +430,10 @@ class BLEManager constructor(
         } else {
             LogHelper.w(mLogger, TAG, "disconnect: mBLEGattManager == null")
         }
+    }
+
+    fun getRemoteDevice(address: String): BluetoothDevice? {
+        return mBluetoothAdapter.getRemoteDevice(address)
     }
 
     init {
