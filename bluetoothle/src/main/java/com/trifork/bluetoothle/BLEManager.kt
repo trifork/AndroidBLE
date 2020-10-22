@@ -116,7 +116,6 @@ class BLEManager constructor(
             LogHelper.w(mLogger, TAG, "startScan: cancel, already scanning")
             return
         }
-        mBluetoothAdapter.startDiscovery()
         if (mBluetoothAdapter.bluetoothLeScanner != null) {
             scanning = true
             LogHelper.d(mLogger, TAG, "startScan() called with: filters = [$filters]")
@@ -181,20 +180,15 @@ class BLEManager constructor(
 
     fun stopScan() {
         scanning = false
-        if (mBluetoothAdapter != null) {
-            mBluetoothAdapter.cancelDiscovery()
-            if (mBluetoothAdapter.bluetoothLeScanner != null) {
-                mBluetoothAdapter.bluetoothLeScanner.stopScan(mScanCallback)
-            } else {
-                LogHelper.w(mLogger, TAG, "stopScan: getBluetoothLeScanner == null")
-            }
+        if (mBluetoothAdapter.bluetoothLeScanner != null) {
+            mBluetoothAdapter.bluetoothLeScanner.stopScan(mScanCallback)
         } else {
-            LogHelper.w(mLogger, TAG, "stopScan: mBluetoothAdapter == null")
+            LogHelper.w(mLogger, TAG, "stopScan: getBluetoothLeScanner == null")
         }
     }
 
     fun connect(bluetoothDevice: BluetoothDevice) {
-        mBluetoothAdapter?.cancelDiscovery()
+        stopScan()
         LogHelper.d(
             mLogger,
             TAG,
@@ -222,15 +216,11 @@ class BLEManager constructor(
     }
 
     fun removeBond(device: BluetoothDevice) {
-        if (mBluetoothAdapter != null) {
-            LogHelper.d(mLogger, TAG, "removeBond() called with: device = [" + device.address + "]")
-            for (bt in mBluetoothAdapter.bondedDevices) {
-                if (bt.address.contains(device.address)) {
-                    unpairDevice(bt)
-                }
+        LogHelper.d(mLogger, TAG, "removeBond() called with: device = [" + device.address + "]")
+        for (bt in mBluetoothAdapter.bondedDevices) {
+            if (bt.address.contains(device.address)) {
+                unpairDevice(bt)
             }
-        } else {
-            LogHelper.w(mLogger, TAG, "removeBond: mBluetoothAdapter == null")
         }
     }
 
