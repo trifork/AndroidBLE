@@ -329,7 +329,13 @@ internal class BLEGattManager(
                 )
                 if (mBluetoothGatt != null) {
                     characteristic.value = data
-                    mBluetoothGatt!!.writeCharacteristic(characteristic)
+                    if (!mBluetoothGatt!!.writeCharacteristic(characteristic)) {
+                        LogHelper.e(
+                                mLogger,
+                                TAG,
+                                "writeCharacteristic on mBluetoothGatt failed"
+                        )
+                    }
                 } else {
                     LogHelper.w(mLogger, TAG, "writeCharacteristic: mBluetoothGatt == null")
                 }
@@ -352,7 +358,13 @@ internal class BLEGattManager(
                             "readCharacteristic(" + characteristic.uuid + ", " + service.uuid + ")"
                         )
                         try {
-                            mBluetoothGatt!!.readCharacteristic(characteristic)
+                            if (!mBluetoothGatt!!.readCharacteristic(characteristic)) {
+                                LogHelper.e(
+                                        mLogger,
+                                        TAG,
+                                        "readCharacteristic on mBluetoothGatt failed"
+                                )
+                            }
                         } catch (npe: NullPointerException) {
                             LogHelper.e(
                                 mLogger,
@@ -397,8 +409,13 @@ internal class BLEGattManager(
                     val descriptor = characteristic.getDescriptor(CCCD_ID)
                     descriptor.value =
                         if (enabled) BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE else BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
-                    mBluetoothGatt!!.writeDescriptor(descriptor)
-                    Handler().postDelayed({ executeNext() }, 500)
+                    if (!mBluetoothGatt!!.writeDescriptor(descriptor)) {
+                        LogHelper.e(
+                                mLogger,
+                                TAG,
+                                "writeDescriptor on mBluetoothGatt failed"
+                        )
+                    }
                 } else {
                     LogHelper.w(
                         mLogger,
