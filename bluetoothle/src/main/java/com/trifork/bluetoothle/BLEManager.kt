@@ -32,9 +32,7 @@ class BLEManager constructor(
                     "onScanResult() called with: callbackType = [" + callbackType + "], result = [" + result.device.address + "]"
                 )
                 mainThread.post {
-                    if (bleManagerScanCallbacks != null) {
-                        bleManagerScanCallbacks!!.onScanResult(result)
-                    }
+                    bleManagerScanCallbacks?.onScanResult(result)
                 }
             }
         }
@@ -42,18 +40,14 @@ class BLEManager constructor(
         override fun onBatchScanResults(results: List<ScanResult>) {
             mainThread.post {
                 for (result in results) {
-                    if (bleManagerScanCallbacks != null) {
-                        bleManagerScanCallbacks!!.onScanResult(result)
-                    }
+                    bleManagerScanCallbacks?.onScanResult(result)
                     LogHelper.i(mLogger, TAG, result.toString())
                 }
             }
         }
 
         override fun onScanFailed(errorCode: Int) {
-            if (bleManagerScanCallbacks != null) {
-                bleManagerScanCallbacks!!.onScanFailed(errorCode)
-            }
+            bleManagerScanCallbacks?.onScanFailed(errorCode)
             when (errorCode) {
                 1 -> LogHelper.e(mLogger, TAG, "Scan failed: SCAN_FAILED_ALREADY_STARTED")
                 2 -> LogHelper.e(
@@ -76,19 +70,15 @@ class BLEManager constructor(
     }
 
     @Synchronized
-    fun addListener(listener: BLEManagerCallbacks?) {
+    fun addListener(listener: BLEManagerCallbacks) {
         LogHelper.d(mLogger, TAG, "Added listener")
-        if (listener != null) {
-            mainThread.post { mListeners.add(listener) }
-        }
+        mainThread.post { mListeners.add(listener) }
     }
 
     @Synchronized
-    fun removeListener(listener: BLEManagerCallbacks?) {
+    fun removeListener(listener: BLEManagerCallbacks) {
         LogHelper.d(mLogger, TAG, "Removed listener")
-        if (listener != null) {
-            mainThread.post { mListeners.remove(listener) }
-        }
+        mainThread.post { mListeners.remove(listener) }
     }
 
     fun getBondedDevice(macAddress: String): BluetoothDevice? {
@@ -116,19 +106,19 @@ class BLEManager constructor(
             LogHelper.w(mLogger, TAG, "startScan: cancel, already scanning")
             return
         }
-        if (mBluetoothAdapter.bluetoothLeScanner != null) {
+        mBluetoothAdapter.bluetoothLeScanner?.let {
             scanning = true
             LogHelper.d(mLogger, TAG, "startScan() called with: filters = [$filters]")
             val settings =
                 ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
             mainThread.post {
-                mBluetoothAdapter.bluetoothLeScanner.startScan(
+                it.startScan(
                     filters,
                     settings,
                     mScanCallback
                 )
             }
-        } else {
+        } ?: run {
             LogHelper.w(mLogger, TAG, "startScan: BluetoothLeScanner == null")
         }
     }
@@ -146,43 +136,39 @@ class BLEManager constructor(
     }
 
     fun readRemoteRssi() {
-        if (mBLEGattManager != null) {
+        mBLEGattManager?.let {
             LogHelper.d(mLogger, TAG, "readRemoteRssi()")
-            mBLEGattManager.readRemoteRssi()
-        } else {
+            it.readRemoteRssi()
+        } ?: run {
             LogHelper.w(mLogger, TAG, "writeCharacteristic: mBLEGattManager == null")
         }
     }
 
     fun writeCharacteristic(characteristic: BluetoothGattCharacteristic, data: ByteArray) {
-        if (mBLEGattManager != null) {
+        mBLEGattManager?.let {
             LogHelper.d(
                 mLogger,
                 TAG,
                 "writeCharacteristic() called with: characteristic = [$characteristic], data = [$data]"
             )
-            mBLEGattManager.writeCharacteristic(characteristic, data)
-        } else {
+            it.writeCharacteristic(characteristic, data)
+        } ?: run {
             LogHelper.w(mLogger, TAG, "writeCharacteristic: mBLEGattManager == null")
         }
     }
 
     fun setCharacteristicNotification(
-        characteristic: BluetoothGattCharacteristic?,
+        characteristic: BluetoothGattCharacteristic,
         enabled: Boolean
     ) {
-        if (mBLEGattManager != null) {
-            mBLEGattManager.setCharacteristicNotification(characteristic, enabled)
-        } else {
+        mBLEGattManager?.setCharacteristicNotification(characteristic, enabled) ?: run {
             LogHelper.w(mLogger, TAG, "setCharacteristicNotification: mBLEGattManager == null")
         }
     }
 
     fun stopScan() {
         scanning = false
-        if (mBluetoothAdapter.bluetoothLeScanner != null) {
-            mBluetoothAdapter.bluetoothLeScanner.stopScan(mScanCallback)
-        } else {
+        mBluetoothAdapter.bluetoothLeScanner?.stopScan(mScanCallback) ?: run {
             LogHelper.w(mLogger, TAG, "stopScan: getBluetoothLeScanner == null")
         }
     }
@@ -194,23 +180,21 @@ class BLEManager constructor(
             TAG,
             "connect() called with: bluetoothDevice = [" + bluetoothDevice.address + "]"
         )
-        mainThread.postDelayed({ mBLEGattManager!!.connect(bluetoothDevice) }, 500)
+        mBLEGattManager?.let {
+            mainThread.postDelayed({ it.connect(bluetoothDevice) }, 500)
+        }
     }
 
     fun discoverServices() {
         LogHelper.d(mLogger, TAG, "discoverServices() called")
-        if (mBLEGattManager != null) {
-            mBLEGattManager.discoverServices()
-        } else {
+        mBLEGattManager?.discoverServices() ?: run {
             LogHelper.w(mLogger, TAG, "discoverServices: mBLEGattManager == null")
         }
     }
 
     fun createBond(device: BluetoothDevice) {
         LogHelper.d(mLogger, TAG, "createBond() called with: device = [" + device.address + "]")
-        if (mBLEGattManager != null) {
-            mBLEGattManager.createBond(device)
-        } else {
+        mBLEGattManager?.createBond(device) ?: run {
             LogHelper.w(mLogger, TAG, "createBond: mBLEGattManager == null")
         }
     }
@@ -240,9 +224,7 @@ class BLEManager constructor(
             TAG,
             "readCharacteristic() called with: characteristic = [" + characteristic.uuid + "]"
         )
-        if (mBLEGattManager != null) {
-            mBLEGattManager.readCharacteristic(characteristic)
-        } else {
+        mBLEGattManager?.readCharacteristic(characteristic) ?: run {
             LogHelper.w(mLogger, TAG, "readCharacteristic: mBLEGattManager == null")
         }
     }
@@ -402,9 +384,7 @@ class BLEManager constructor(
 
     fun changeMtu(mtu: Int) {
         LogHelper.d(mLogger, TAG, "changeMtu() called with: mtu = [$mtu]")
-        if (mBLEGattManager != null) {
-            mBLEGattManager.changeMtu(mtu)
-        } else {
+        mBLEGattManager?.changeMtu(mtu) ?: run {
             LogHelper.w(mLogger, TAG, "changeMtu: mBLEGattManager == null")
         }
     }
@@ -415,9 +395,7 @@ class BLEManager constructor(
 
     fun disconnect() {
         LogHelper.d(mLogger, TAG, "disconnect() called")
-        if (mBLEGattManager != null) {
-            mBLEGattManager.disconnect()
-        } else {
+        mBLEGattManager?.disconnect() ?: run {
             LogHelper.w(mLogger, TAG, "disconnect: mBLEGattManager == null")
         }
     }
@@ -427,8 +405,8 @@ class BLEManager constructor(
     }
 
     init {
-        if (listener != null) {
-            mainThread.post { mListeners.add(listener) }
+        listener?.let {
+            mainThread.post { mListeners.add(it) }
         }
         val bluetoothManager =
             (context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager)
