@@ -134,12 +134,12 @@ internal class BLEGattManager(
 
     fun discoverServices() {
         addAction({
-            if (mBluetoothGatt != null) {
+            mBluetoothGatt?.let {
                 LogHelper.d(mLogger, TAG, "Discovering services.")
-                if (!mBluetoothGatt!!.discoverServices()) {
+                if (!it.discoverServices()) {
                     LogHelper.e(mLogger, TAG, "Failed to discover services.")
                 }
-            } else {
+            } ?: run {
                 LogHelper.w(mLogger, TAG, "discoverServices: mBluetoothGatt == null")
             }
         }, ACTION_DISCOVER_SERVICES)
@@ -160,12 +160,12 @@ internal class BLEGattManager(
 
     fun changeMtu(mtu: Int) {
         addAction({
-            if (mBluetoothGatt != null) {
+            mBluetoothGatt?.let {
                 LogHelper.d(mLogger, TAG, "Changing MTU size to: $mtu")
-                if (!mBluetoothGatt!!.requestMtu(mtu)) {
+                if (!it.requestMtu(mtu)) {
                     LogHelper.e(mLogger, TAG, "Failed to request MTU size: $mtu")
                 }
-            } else {
+            } ?: run {
                 LogHelper.w(mLogger, TAG, "requestMtu: mBluetoothGatt == null")
             }
         }, ACTION_CHANGE_MTU)
@@ -318,141 +318,113 @@ internal class BLEGattManager(
     private val broadcastIntentFilter: IntentFilter
         get() = IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
 
-    fun writeCharacteristic(characteristic: BluetoothGattCharacteristic?, data: ByteArray?) {
-        if (characteristic != null) {
-            val service = characteristic.service
-            addAction({
+    fun writeCharacteristic(characteristic: BluetoothGattCharacteristic, data: ByteArray) {
+        addAction({
+            LogHelper.d(
+                mLogger,
+                TAG,
+                "writeCharacteristic() called with: service = [" + characteristic.service?.uuid + "], characteristicUuid = [" + characteristic.uuid + "]"
+            )
+            mBluetoothGatt?.let {
+                characteristic.value = data
+                if (!it.writeCharacteristic(characteristic)) {
+                    LogHelper.e(
+                        mLogger,
+                        TAG,
+                        "writeCharacteristic on mBluetoothGatt failed"
+                    )
+                }
+            } ?: run {
+                LogHelper.w(mLogger, TAG, "writeCharacteristic: mBluetoothGatt == null")
+            }
+        }, ACTION_WRITE_CHARACTERISTIC)
+    }
+
+    fun readCharacteristic(characteristic: BluetoothGattCharacteristic) {
+        LogHelper.d(mLogger, TAG, "addAction - readCharacteristic")
+        addAction({
+            mBluetoothGatt?.let {
                 LogHelper.d(
                     mLogger,
                     TAG,
-                    "writeCharacteristic() called with: service = [" + service.uuid + "], characteristicUuid = [" + characteristic.uuid + "]"
+                    "readCharacteristic(" + characteristic.uuid + ", " + characteristic.service?.uuid + ")"
                 )
-                if (mBluetoothGatt != null) {
-                    characteristic.value = data
-                    if (!mBluetoothGatt!!.writeCharacteristic(characteristic)) {
+                try {
+                    if (!it.readCharacteristic(characteristic)) {
                         LogHelper.e(
-                                mLogger,
-                                TAG,
-                                "writeCharacteristic on mBluetoothGatt failed"
+                            mLogger,
+                            TAG,
+                            "readCharacteristic on mBluetoothGatt failed"
                         )
                     }
-                } else {
-                    LogHelper.w(mLogger, TAG, "writeCharacteristic: mBluetoothGatt == null")
+                } catch (npe: NullPointerException) {
+                    LogHelper.e(
+                        mLogger,
+                        TAG,
+                        "readCharacteristic(" + characteristic.uuid + ", " + characteristic.service?.uuid + ") throws NullPointerException"
+                    )
                 }
-            }, ACTION_WRITE_CHARACTERISTIC)
-        } else {
-            LogHelper.e(mLogger, TAG, "writeCharacteristic() failed, characteristic is null")
-        }
-    }
-
-    fun readCharacteristic(characteristic: BluetoothGattCharacteristic?) {
-        if (characteristic != null) {
-            val service = characteristic.service
-            LogHelper.d(mLogger, TAG, "addAction - readCharacteristic")
-            if (service != null) {
-                addAction({
-                    if (mBluetoothGatt != null) {
-                        LogHelper.d(
-                            mLogger,
-                            TAG,
-                            "readCharacteristic(" + characteristic.uuid + ", " + service.uuid + ")"
-                        )
-                        try {
-                            if (!mBluetoothGatt!!.readCharacteristic(characteristic)) {
-                                LogHelper.e(
-                                        mLogger,
-                                        TAG,
-                                        "readCharacteristic on mBluetoothGatt failed"
-                                )
-                            }
-                        } catch (npe: NullPointerException) {
-                            LogHelper.e(
-                                mLogger,
-                                TAG,
-                                "readCharacteristic(" + characteristic.uuid + ", " + service.uuid + ") throws NullPointerException"
-                            )
-                        }
-                    } else {
-                        LogHelper.w(
-                            mLogger,
-                            TAG,
-                            "readCharacteristic(" + characteristic.uuid + ") failed, mBluetoothGatt is null"
-                        )
-                    }
-                }, ACTION_READ_CHARACTERISTIC)
-            } else {
+            } ?: run {
                 LogHelper.w(
                     mLogger,
                     TAG,
-                    "readCharacteristic(" + characteristic.uuid + ") failed, service is null"
+                    "readCharacteristic(" + characteristic.uuid + ") failed, mBluetoothGatt is null"
                 )
             }
-        } else {
-            LogHelper.e(mLogger, TAG, "readCharacteristic() failed, characteristic is null")
-        }
+        }, ACTION_READ_CHARACTERISTIC)
     }
 
     fun setCharacteristicNotification(
-        characteristic: BluetoothGattCharacteristic?,
+        characteristic: BluetoothGattCharacteristic,
         enabled: Boolean
     ) {
-        if (characteristic != null) {
-            val service = characteristic.service
-            addAction({
-                LogHelper.d(
-                    mLogger,
-                    TAG,
-                    "setCharacteristicNotification(" + characteristic.uuid + ", " + service.uuid.toString() + ")"
-                )
-                if (mBluetoothGatt != null) {
-                    mBluetoothGatt!!.setCharacteristicNotification(characteristic, enabled)
-                    val descriptor = characteristic.getDescriptor(CCCD_ID)
-                    descriptor.value =
-                        if (enabled) BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE else BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
-                    if (!mBluetoothGatt!!.writeDescriptor(descriptor)) {
-                        LogHelper.e(
-                                mLogger,
-                                TAG,
-                                "writeDescriptor on mBluetoothGatt failed"
-                        )
-                    }
-                } else {
-                    LogHelper.w(
-                        mLogger,
-                        TAG,
-                        "setCharacteristicNotification: mBluetoothGatt == null"
-                    )
-                }
-            }, ACTION_SET_CHARACTERISTIC_NOTIFICATION)
-        } else {
-            LogHelper.e(
+        addAction({
+            LogHelper.d(
                 mLogger,
                 TAG,
-                "setCharacteristicNotification() failed, characteristic is null"
+                "setCharacteristicNotification(" + characteristic.uuid + ", " + characteristic.service?.uuid.toString() + ")"
             )
-        }
+            mBluetoothGatt?.let {
+                it.setCharacteristicNotification(characteristic, enabled)
+                val descriptor = characteristic.getDescriptor(CCCD_ID)
+                descriptor.value =
+                    if (enabled) BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE else BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+                if (!it.writeDescriptor(descriptor)) {
+                    LogHelper.e(
+                        mLogger,
+                        TAG,
+                        "writeDescriptor on mBluetoothGatt failed"
+                    )
+                }
+            } ?: run {
+                LogHelper.w(
+                    mLogger,
+                    TAG,
+                    "setCharacteristicNotification: mBluetoothGatt == null"
+                )
+            }
+        }, ACTION_SET_CHARACTERISTIC_NOTIFICATION)
+
     }
 
     fun disconnect() {
         LogHelper.d(mLogger, TAG, "disconnect()")
         clearActionQueue()
-        if (mBluetoothGatt != null) {
-            mBluetoothGatt!!.disconnect()
-        }
+        mBluetoothGatt?.disconnect()
     }
 
     fun refreshCache(): Boolean {
-        return if (mBluetoothGatt != null) {
-            refreshDeviceCache(mBluetoothGatt)
-        } else false
+        return mBluetoothGatt?.let {
+            refreshDeviceCache(it)
+        } ?: run {
+            false
+        }
     }
 
-    private fun refreshDeviceCache(gatt: BluetoothGatt?): Boolean {
+    private fun refreshDeviceCache(gatt: BluetoothGatt): Boolean {
         try {
-            val localMethod = gatt?.javaClass?.getMethod("refresh", *arrayOfNulls(0))
-            if (localMethod != null) {
-                return (localMethod.invoke(gatt, *arrayOfNulls(0)) as Boolean)
-            }
+            val localMethod = gatt.javaClass.getMethod("refresh", *arrayOfNulls(0))
+            return (localMethod.invoke(gatt, *arrayOfNulls(0)) as Boolean)
         } catch (localException: Exception) {
             LogHelper.e(mLogger, TAG, "An exception occurred while refreshing device")
         }
@@ -469,9 +441,7 @@ internal class BLEGattManager(
         if (!actionNames.values.contains(ACTION_READ_REMOTE_RSSI)) {
             addAction({
                 LogHelper.d(mLogger, TAG, "readRemoteRssi()")
-                if (mBluetoothGatt != null) {
-                    mBluetoothGatt!!.readRemoteRssi()
-                } else {
+                mBluetoothGatt?.readRemoteRssi() ?: run {
                     LogHelper.w(mLogger, TAG, "readRemoteRssi: mBluetoothGatt == null")
                 }
             }, ACTION_READ_REMOTE_RSSI)
