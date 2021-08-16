@@ -106,7 +106,6 @@ class BLEManager constructor(
             LogHelper.w(mLogger, TAG, "startScan: cancel, already scanning")
             return
         }
-        mBluetoothAdapter.startDiscovery()
         mBluetoothAdapter.bluetoothLeScanner?.let {
             scanning = true
             LogHelper.d(mLogger, TAG, "startScan() called with: filters = [$filters]")
@@ -169,14 +168,13 @@ class BLEManager constructor(
 
     fun stopScan() {
         scanning = false
-        mBluetoothAdapter.cancelDiscovery()
         mBluetoothAdapter.bluetoothLeScanner?.stopScan(mScanCallback) ?: run {
             LogHelper.w(mLogger, TAG, "stopScan: getBluetoothLeScanner == null")
         }
     }
 
     fun connect(bluetoothDevice: BluetoothDevice) {
-        mBluetoothAdapter.cancelDiscovery()
+        stopScan()
         LogHelper.d(
             mLogger,
             TAG,
