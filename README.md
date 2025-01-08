@@ -1,3 +1,6 @@
+> [!CAUTION]
+> :no_entry: Replaced by https://github.com/trifork/AndroidBluetooth
+
 # AndroidBLE
 
 ## How to use
